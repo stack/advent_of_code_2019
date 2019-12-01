@@ -11,7 +11,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "advent_of_code_2019",
+            name: "01",
             dependencies: ["Utilities"]),
         .target(
             name: "Utilities",
