@@ -43,19 +43,15 @@ struct Point: Equatable {
 enum Square {
     case empty
     case origin
-    case turn(Int)
-    case hWire(Int)
-    case vWire(Int)
-    case intersection
+    case wire(wireIdx: Int, step: Int, shape: String)
+    case intersection(steps: [Int])
 
     var character: String {
         switch self {
         case .empty: return "."
         case .origin: return "O"
-        case .turn(_): return "+"
-        case .hWire(_): return "-"
-        case .vWire(_): return "|"
-        case .intersection: return "X"
+        case .wire(_, _, let shape): return shape
+        case .intersection(_): return "X"
         }
     }
 }
@@ -129,7 +125,7 @@ class Panel {
         return bounds
     }
 
-    func findIntersection() -> Point? {
+    func findIntersection() {
         let bounds1 = determineBounds(wire: wire1)
         let bounds2 = determineBounds(wire: wire2)
 
@@ -157,72 +153,60 @@ class Panel {
 
         for (idx, wire) in [wire1, wire2].enumerated() {
             var point = origin
+            var totalSteps = 0
 
             for instruction in wire {
-                let square: Square
+                let wireShape: String
                 let xDelta: Int
                 let yDelta: Int
                 var distance: Int
 
                 switch instruction {
                 case .up(let d):
-                    square = .vWire(idx)
+                    wireShape = "|"
                     xDelta = 0
                     yDelta = 1
                     distance = d
                 case .down(let d):
-                    square = .vWire(idx)
+                    wireShape = "|"
                     xDelta = 0
                     yDelta = -1
                     distance = d
                 case .left(let d):
-                    square = .hWire(idx)
+                    wireShape = "-"
                     xDelta = -1
                     yDelta = 0
                     distance = d
                 case .right(let d):
-                    square = .hWire(idx)
+                    wireShape = "-"
                     xDelta = 1
                     yDelta = 0
                     distance = d
                 }
 
-                for step in 0 ..< distance {
-                    if step == 0 && point != origin {
-                        panel[point.y][point.x] = .turn(idx)
+                for currentStep in 0 ..< distance {
+                    if currentStep == 0 {
+                        if case .wire(let wireIdx, let wireStep, _) = panel[point.y][point.x] {
+                            panel[point.y][point.x] = .wire(wireIdx: wireIdx, step: wireStep, shape: "+")
+                        }
                     }
 
                     point.x += xDelta
                     point.y += yDelta
+                    totalSteps += 1
 
                     switch panel[point.y][point.x] {
                     case .empty:
-                        panel[point.y][point.x] = square
-                    case .hWire(let i):
-                        if i == idx {
-                            panel[point.y][point.x] = square
-                        } else {
-                            panel[point.y][point.x] = .intersection
-                            intersections.append(point)
-                        }
-                    case .vWire(let i):
-                        if i == idx {
-                            panel[point.y][point.x] = square
-                        } else {
-                            panel[point.y][point.x] = .intersection
-                            intersections.append(point)
-                        }
-                    case .intersection:
-                        panel[point.y][point.x] = square
+                        panel[point.y][point.x] = .wire(wireIdx: idx, step: totalSteps, shape: wireShape)
                     case .origin:
-                        fatalError("Overwrite the origin")
-                    case .turn(let i):
-                        if i == idx {
-                            panel[point.y][point.x] = .turn(i)
-                        } else {
-                            panel[point.y][point.x] = .intersection
+                        fatalError("Crossed origin")
+                    case .wire(let wireIdx, let wireStep, _):
+                        if wireIdx != idx {
+                            panel[point.y][point.x] = .intersection(steps: [wireStep, totalSteps])
                             intersections.append(point)
                         }
+                    case .intersection(_):
+                        break // NOOP
                     }
                 }
 
@@ -234,8 +218,24 @@ class Panel {
             Point(x: $0.x + minX, y: $0.y + minY)
         }
 
-        return adjustedIntersections.min { (lhs, rhs) -> Bool in
-            lhs.distanceFromOrigin < rhs.distanceFromOrigin
+        if let minimumPoint = adjustedIntersections.min(by: { $0.distanceFromOrigin < $1.distanceFromOrigin }) {
+            print("Closest: \(minimumPoint) -> \(minimumPoint.distanceFromOrigin)")
+        } else {
+            print("No closest found")
+        }
+
+        let totalSteps = intersections.map { (point: Point) -> Int in
+            if case .intersection(let steps) = panel[point.y][point.x] {
+                return steps.reduce(0, +)
+            } else {
+                fatalError("Intersection was corrupt")
+            }
+        }
+
+        if let minimumTotalSteps = totalSteps.min() {
+            print("Minimum Steps: \(minimumTotalSteps)")
+        } else {
+            print("No minimum steps")
         }
     }
 
@@ -266,8 +266,4 @@ let wires = lineGenerator(fileHandle: .standardInput).map {
 
 let panel = Panel(wire1: wires[0], wire2: wires[1], shouldPrint: shouldPrint)
 
-if let intersection = panel.findIntersection() {
-    print("Closest: \(intersection) -> \(intersection.distanceFromOrigin)")
-} else {
-    print("No closest found")
-}
+panel.findIntersection()
