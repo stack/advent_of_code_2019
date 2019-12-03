@@ -31,7 +31,7 @@ struct Bounds {
     }
 }
 
-struct Point {
+struct Point: Equatable {
     var x: Int
     var y: Int
 
@@ -40,14 +40,36 @@ struct Point {
     }
 }
 
+enum Square {
+    case empty
+    case origin
+    case turn(Int)
+    case hWire(Int)
+    case vWire(Int)
+    case intersection
+
+    var character: String {
+        switch self {
+        case .empty: return "."
+        case .origin: return "O"
+        case .turn(_): return "+"
+        case .hWire(_): return "-"
+        case .vWire(_): return "|"
+        case .intersection: return "X"
+        }
+    }
+}
+
 class Panel {
 
     let wire1: [Instruction]
     let wire2: [Instruction]
+    let shouldPrint: Bool
 
-    init(wire1: [Instruction], wire2: [Instruction]) {
+    init(wire1: [Instruction], wire2: [Instruction], shouldPrint: Bool = false) {
         self.wire1 = wire1
         self.wire2 = wire2
+        self.shouldPrint = shouldPrint
     }
 
     static func parseInstructions(line: String) -> [Instruction] {
@@ -122,85 +144,127 @@ class Panel {
         let width = maxX - minX + 1
         let height = maxY - minY + 1
 
-        var panel: [[String]] = Array(repeating: Array(repeating: ".", count: width), count: height)
+        var panel: [[Square]] = Array(repeating: Array(repeating: .empty, count: width), count: height)
 
-        let origin: Point = Point(x: -minX, y: height - minY - 1)
+        let origin: Point = Point(x: -minX, y: -minY)
         print("Origin: \(origin)")
 
-        panel[height - minY - 1][-minX] = "O"
+        panel[origin.y][origin.x] = .origin
 
         printPanel(panel)
 
         var intersections: [Point] = []
 
-        for wire in [wire1, wire2] {
+        for (idx, wire) in [wire1, wire2].enumerated() {
             var point = origin
 
             for instruction in wire {
-                let character: String
+                let square: Square
                 let xDelta: Int
                 let yDelta: Int
                 var distance: Int
 
                 switch instruction {
                 case .up(let d):
-                    character = "|"
-                    xDelta = 0
-                    yDelta = -1
-                    distance = d
-                case .down(let d):
-                    character = "|"
+                    square = .vWire(idx)
                     xDelta = 0
                     yDelta = 1
                     distance = d
+                case .down(let d):
+                    square = .vWire(idx)
+                    xDelta = 0
+                    yDelta = -1
+                    distance = d
                 case .left(let d):
-                    character = "-"
+                    square = .hWire(idx)
                     xDelta = -1
                     yDelta = 0
                     distance = d
                 case .right(let d):
-                    character = "-"
+                    square = .hWire(idx)
                     xDelta = 1
                     yDelta = 0
                     distance = d
                 }
 
-                for _ in 0 ..< distance {
+                for step in 0 ..< distance {
+                    if step == 0 && point != origin {
+                        panel[point.y][point.x] = .turn(idx)
+                    }
+
                     point.x += xDelta
                     point.y += yDelta
 
-                    if panel[point.y][point.x] != "." {
-                        panel[point.y][point.x] = "X"
-                        intersections.append(Point(x: point.x, y: point.y - 1))
-                    } else {
-                        panel[point.y][point.x] = character
+                    switch panel[point.y][point.x] {
+                    case .empty:
+                        panel[point.y][point.x] = square
+                    case .hWire(let i):
+                        if i == idx {
+                            panel[point.y][point.x] = square
+                        } else {
+                            panel[point.y][point.x] = .intersection
+                            intersections.append(point)
+                        }
+                    case .vWire(let i):
+                        if i == idx {
+                            panel[point.y][point.x] = square
+                        } else {
+                            panel[point.y][point.x] = .intersection
+                            intersections.append(point)
+                        }
+                    case .intersection:
+                        panel[point.y][point.x] = square
+                    case .origin:
+                        fatalError("Overwrite the origin")
+                    case .turn(let i):
+                        if i == idx {
+                            panel[point.y][point.x] = .turn(i)
+                        } else {
+                            panel[point.y][point.x] = .intersection
+                            intersections.append(point)
+                        }
                     }
                 }
-
-                panel[point.y][point.x] = "+"
 
                 printPanel(panel)
             }
         }
 
-        return intersections.min { (lhs, rhs) -> Bool in
+        let adjustedIntersections = intersections.map {
+            Point(x: $0.x + minX, y: $0.y + minY)
+        }
+
+        return adjustedIntersections.min { (lhs, rhs) -> Bool in
             lhs.distanceFromOrigin < rhs.distanceFromOrigin
         }
     }
 
-    func printPanel(_ panel: [[String]]) {
-        for line in panel {
-            print(line.joined(separator: ""))
+    func printPanel(_ panel: [[Square]]) {
+        guard shouldPrint else {
+            return
+        }
+
+        for line in panel.reversed() {
+            print(line.map { $0.character }.joined(separator: ""))
         }
     }
 
+}
+
+let shouldPrintString = CommandLine.arguments.dropFirst().first
+let shouldPrint: Bool
+
+if let value = shouldPrintString {
+    shouldPrint = value == "print"
+} else {
+    shouldPrint = false
 }
 
 let wires = lineGenerator(fileHandle: .standardInput).map {
     return Panel.parseInstructions(line: $0)
 }
 
-let panel = Panel(wire1: wires[0], wire2: wires[1])
+let panel = Panel(wire1: wires[0], wire2: wires[1], shouldPrint: shouldPrint)
 
 if let intersection = panel.findIntersection() {
     print("Closest: \(intersection) -> \(intersection.distanceFromOrigin)")
