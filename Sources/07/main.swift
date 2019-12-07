@@ -9,34 +9,82 @@
 import Foundation
 import Utilities
 
-let sequences = Data.inputSequence
-let program = Data.inputProgram
+let program1 = Data.inputProgram
+let sequences1 = Data.inputSequences1
 
-var maxSequence: [Int] = []
-var maxOutput: Int = 0
+let program2 = Data.inputProgram
+let sequences2 = Data.inputSequences2
 
-for sequence in sequences {
-    print("Sequence: \(sequence)")
+func part1(program: [Int], sequences: [[Int]]) {
+    var maxSequence: [Int] = []
+    var maxOutput: Int = 0
 
-    var output = 0
+    for sequence in sequences {
+        print("Sequence: \(sequence)")
 
-    for phase in sequence {
-        let inputs = [phase, output]
+        var output = 0
 
-        let amp = Amp(data: program, inputs: inputs)
-        amp.run()
+        let amps = sequence.map { Amp(data: program, inputs: [$0]) }
 
-        output = amp.lastOutput
+        for amp in amps {
+            amp.add(input: output)
+            amp.run()
+
+            output = amp.lastOutput
+        }
+
+        print("Output: \(output)")
+
+        if output > maxOutput {
+            print("Max Output is now \(output)")
+            maxSequence = sequence
+            maxOutput = output
+        }
     }
 
-    print("Output: \(output)")
-
-    if output > maxOutput {
-        print("Max Output is now \(output)")
-        maxSequence = sequence
-        maxOutput = output
-    }
+    print("Max Sequence: \(maxSequence)")
+    print("Max Output: \(maxOutput)")
 }
 
-print("Max Sequence: \(maxSequence)")
-print("Max Output: \(maxOutput)")
+func part2(program: [Int], sequences: [[Int]]) {
+    var maxSequence: [Int] = []
+    var maxOutput: Int = 0
+
+    for sequence in sequences {
+        print("Sequence: \(sequence)")
+
+        var output = 0
+
+        var amps = sequence.map { Amp(data: program, inputs: [$0]) }
+
+        while true {
+            let amp = amps.removeFirst()
+
+            amp.add(input: output)
+            amp.run()
+
+            output = amp.lastOutput
+
+            amps.append(amp)
+
+            let halted = amps.reduce(true, { $0 && $1.isHalted })
+            if halted {
+                break
+            }
+        }
+
+        print("Output: \(output)")
+
+        if output > maxOutput {
+            print("Max Output is now \(output)")
+            maxSequence = sequence
+            maxOutput = output
+        }
+    }
+
+    print("Max Sequence: \(maxSequence)")
+    print("Max Output: \(maxOutput)")
+}
+
+part1(program: program1, sequences: sequences1)
+part2(program: program2, sequences: sequences2)

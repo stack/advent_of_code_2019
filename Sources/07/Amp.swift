@@ -131,22 +131,23 @@ struct Operation {
 
 class Amp {
 
-    let initialData: [Int]
-    let initialInputs: [Int]
     var data: [Int]
     var head: Int
     var inputs: [Int]
     var lastOutput: Int
 
-    init(data: [Int], inputs: [Int]) {
-        initialData = data
-        initialInputs = inputs
+    var isHalted = false
 
-        self.data = []
+    init(data: [Int], inputs: [Int]) {
+        self.data = data
         head = 0
-        self.inputs = []
+        self.inputs = inputs
 
         lastOutput = 0
+    }
+
+    func add(input: Int) {
+        inputs.append(input)
     }
 
     private func add(parameters: [Parameter]) -> Int {
@@ -249,11 +250,6 @@ class Amp {
     }
 
     func run() {
-        data = initialData
-        head = 0
-        inputs = initialInputs
-        lastOutput = 0
-
         var keepRunning = true
 
         while keepRunning {
@@ -271,6 +267,7 @@ class Amp {
                 nextHead = input(parameters: operation.parameters)
             case .output:
                 nextHead = output(parameters: operation.parameters)
+                keepRunning = false
             case .jumpIfTrue:
                 nextHead = jumpIfTrue(parameters: operation.parameters)
             case .jumpIfFalse:
@@ -281,6 +278,7 @@ class Amp {
                 nextHead = equals(parameters: operation.parameters)
             case .halt:
                 keepRunning = false
+                isHalted = true
                 nextHead = head
             case .invalid:
                 fatalError("Invalid instruction")
