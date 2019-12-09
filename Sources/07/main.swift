@@ -24,7 +24,7 @@ func part1(program: [Int], sequences: [[Int]]) {
 
         var output = 0
 
-        let amps = sequence.map { Amp(data: program, inputs: [$0]) }
+        let amps = sequence.map { IntcodeComputer(data: program, inputs: [$0]) }
 
         for amp in amps {
             amp.add(input: output)
@@ -55,7 +55,7 @@ func part2(program: [Int], sequences: [[Int]]) {
 
         var output = 0
 
-        var amps = sequence.map { Amp(data: program, inputs: [$0]) }
+        var amps = sequence.map { IntcodeComputer(data: program, inputs: [$0]) }
 
         while true {
             let amp = amps.removeFirst()
