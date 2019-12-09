@@ -6,6 +6,9 @@
 //  Copyright © 2019 Stephen H. Gerstacker. All rights reserved.
 //
 
+import Foundation
+import Utilities
+
 // let program = Data.sampleData1
 // let program = Data.sampleData2
 // let program = Data.sampleData3
@@ -19,9 +22,13 @@ let inputs = Data.input2Inputs
 
 let computer = IntcodeComputer(data: program, inputs: inputs)
 
-while !computer.isHalted {
+while true {
     computer.run()
 
+    if computer.isHalted {
+        break
+    }
+
     let output = computer.lastOutput
-    print("Last Output: \(output)")
+    print("Output: \(output)")
 }

@@ -1,15 +1,14 @@
 //
 //  IntcodeComputer.swift
-//  Day 09
+//  Utilities
 //
 //  Created by Stephen H. Gerstacker on 2019-12-09.
 //  Copyright © 2019 Stephen H. Gerstacker. All rights reserved.
 //
 
 import Foundation
-import Utilities
 
-enum Instruction {
+public enum Instruction {
     case add
     case multiply
     case input
@@ -23,7 +22,7 @@ enum Instruction {
     case invalid
 }
 
-enum Parameter {
+public enum Parameter {
     case none
     case position(Int)
     case immediate(Int)
@@ -43,7 +42,7 @@ enum Parameter {
     }
 }
 
-struct Operation {
+public struct Operation {
     let instruction: Instruction
     let parameters: [Parameter]
 
@@ -147,13 +146,9 @@ struct Operation {
 
         return operation
     }
-
-    var length: Int {
-        return 1 + parameters.count
-    }
 }
 
-class IntcodeComputer {
+public class IntcodeComputer {
 
     // MARK: - Properties
 
@@ -161,13 +156,13 @@ class IntcodeComputer {
     var head: Int
     var relativeBase: Int
     var inputs: [Int]
-    var lastOutput: Int
+    public private(set) var lastOutput: Int
 
-    var isHalted = false
+    public private(set) var isHalted = false
 
     // MARK: - Initialization
 
-    init(data: [Int], inputs: [Int]) {
+    public init(data: [Int], inputs: [Int]) {
         self.data = data
         head = 0
         relativeBase = 0
@@ -178,7 +173,7 @@ class IntcodeComputer {
 
     // MARK: - Memory Management
 
-    private func getValue(parameter: Parameter) -> Int {
+    public func getValue(parameter: Parameter) -> Int {
         switch parameter {
         case .immediate(let value):
             return value
@@ -199,7 +194,7 @@ class IntcodeComputer {
         }
     }
 
-    private func setValue(value: Int, at index: Int) {
+    public func setValue(value: Int, at index: Int) {
         while data.count <= index {
             data.append(0)
         }
@@ -303,7 +298,6 @@ class IntcodeComputer {
     private func output(parameters: [Parameter]) -> Int {
         let value = getValue(parameter: parameters[0])
 
-        print("Output @ \(head): \(value)")
         lastOutput = value
 
         return head + 2
@@ -311,11 +305,11 @@ class IntcodeComputer {
 
     // MARK: - Running
 
-    func add(input: Int) {
+    public func add(input: Int) {
         inputs.append(input)
     }
 
-    func run() {
+    public func run() {
         var keepRunning = true
 
         while keepRunning {
