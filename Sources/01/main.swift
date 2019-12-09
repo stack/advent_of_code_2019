@@ -26,7 +26,10 @@ func fuelRequired(_ mass: Int) -> Int {
     return (mass / 3) - 2
 }
 
-let masses = lineGenerator(fileHandle: .standardInput).map { Int($0)! }
+// let masses = Data.sampleData1
+// let masses = Data.sampleData2
+let masses = Data.inputData
+
 let fuels = masses.map(fuelRequired)
 let allFuels = masses.map(allFuelRequired)
 
@@ -48,7 +51,8 @@ print("## All Fuels")
 print("")
 
 for pair in zip(masses, allFuels) {
-    print("\(pair.0) -> \(pair.1)")
+    let sum = pair.1.reduce(0, +)
+    print("\(pair.0) -> \(pair.1) = \(sum)")
 }
 
 print("")

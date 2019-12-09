@@ -6,7 +6,7 @@
 //  Copyright © 2019 Stephen H. Gerstacker. All rights reserved.
 //
 
-let input = "245318-765747"
+let input = Data.input
 
 // Part 1
 

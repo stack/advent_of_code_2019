@@ -90,7 +90,7 @@ class Program {
 
     func run() {
         while true {
-            printState()
+            // printState()
 
             let instruction = parseNext()
             let keepRunning = perform(instruction: instruction)
@@ -102,8 +102,8 @@ class Program {
             advance(from: instruction)
         }
 
-        printState()
-        print("=====")
+        // printState()
+        //print("=====")
     }
 
     func printState() {
@@ -129,56 +129,52 @@ class Program {
     }
 }
 
-let modeString = CommandLine.arguments.dropFirst().first
-let mode: Mode
+let mode: Mode = .second
 
-if let value = modeString {
-    mode = Mode(rawValue: value) ?? .none
-} else {
-    mode = .none
-}
+var data = Data.input
+let inputs = Data.inputInputs
 
-for line in lineGenerator(fileHandle: .standardInput) {
-    let data = line.split(separator: ",").map { Int($0)! }
+switch mode {
+case .none:
+    let program = Program(data: data)
+    program.run()
 
-    switch mode {
-    case .none:
-        let program = Program(data: data)
-        program.run()
+    print("Output: \(program.output)")
+case .first:
+    for (idx, input) in inputs.enumerated() {
+        data[idx + 1] = input
+    }
 
-        print("Output: \(program.output)")
-    case .first:
-        let program = Program(data: data)
-        program.adjust(index: 1, value: 12)
-        program.adjust(index: 2, value: 2)
-        program.run()
+    let program = Program(data: data)
 
-        print("Output: \(program.output)")
-    case .second:
-        let program = Program(data: data)
-        var complete = false
+    program.run()
 
-        for noun in 0 ... 99 {
-            for verb in 0 ... 99 {
-                program.reset()
-                program.adjust(index: 1, value: noun)
-                program.adjust(index: 2, value: verb)
-                program.run()
+    print("Output: \(program.output)")
+case .second:
 
-                print("Output: \(program.output)")
+    var complete = false
 
-                if program.output == 19690720 {
-                    let result = 100 * noun + verb
-                    print("Result: \(result)")
+    for noun in 0 ... 99 {
+        for verb in 0 ... 99 {
+            data[1] = noun
+            data[2] = verb
 
-                    complete = true
-                    break
-                }
-            }
+            let program = Program(data: data)
+            program.run()
 
-            if complete {
+            print("Output: \(program.output)")
+
+            if program.output == 19690720 {
+                let result = 100 * noun + verb
+                print("Result: \(result)")
+
+                complete = true
                 break
             }
+        }
+
+        if complete {
+            break
         }
     }
 }

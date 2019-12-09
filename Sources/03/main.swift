@@ -88,6 +88,26 @@ class Panel {
         }
     }
 
+    static func parseInstructions(values: [String]) -> [Instruction] {
+        return values.map {
+            let direction = $0.first!
+            let distance = Int($0.dropFirst())!
+
+            switch direction {
+            case "U":
+                return .up(distance)
+            case "D":
+                return .down(distance)
+            case "L":
+                return .left(distance)
+            case "R":
+                return .right(distance)
+            default:
+                fatalError("Unhandled direction: \(direction)")
+            }
+        }
+    }
+
     private func determineBounds(wire: [Instruction]) -> Bounds {
         var bounds = Bounds(minX: 0, minY: 0, maxX: 0, maxY: 0)
 
@@ -251,17 +271,11 @@ class Panel {
 
 }
 
-let shouldPrintString = CommandLine.arguments.dropFirst().first
-let shouldPrint: Bool
+let shouldPrint = false
+let data = Data.input
 
-if let value = shouldPrintString {
-    shouldPrint = value == "print"
-} else {
-    shouldPrint = false
-}
-
-let wires = lineGenerator(fileHandle: .standardInput).map {
-    return Panel.parseInstructions(line: $0)
+let wires = data.map {
+    return Panel.parseInstructions(values: $0)
 }
 
 let panel = Panel(wire1: wires[0], wire2: wires[1], shouldPrint: shouldPrint)
