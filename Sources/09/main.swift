@@ -14,7 +14,8 @@ let program = Data.inputData
 // let inputs = Data.sampleInputs1
 // let inputs = Data.sampleInputs2
 // let inputs = Data.sampleInputs3
-let inputs = Data.inputInputs
+// let inputs = Data.input1Inputs
+let inputs = Data.input2Inputs
 
 let computer = IntcodeComputer(data: program, inputs: inputs)
 
