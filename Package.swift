@@ -38,6 +38,9 @@ let package = Package(
             name: "08",
             dependencies: ["Utilities"]),
         .target(
+            name: "09",
+            dependencies: ["Utilities"]),
+        .target(
             name: "Utilities",
             dependencies: [])
     ]
