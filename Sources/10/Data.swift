@@ -9,6 +9,11 @@
 import Foundation
 import Utilities
 
+struct Point: Hashable {
+    let x: Int
+    let y: Int
+}
+
 struct Data {
 
     static let sample1 = """
@@ -18,6 +23,8 @@ struct Data {
         ....#
         ...##
         """
+
+    static let sample1Point: Point? = nil
 
     static let sample2 = """
         ......#.#.
@@ -32,6 +39,8 @@ struct Data {
         .#....####
         """
 
+    static let sample2Point: Point? = nil
+
     static let sample3 = """
         #.#...#.#.
         .###....#.
@@ -45,6 +54,8 @@ struct Data {
         .####.###.
         """
 
+    static let sample3Point: Point? = nil
+
     static let sample4 = """
         .#..#..###
         ####.###.#
@@ -57,6 +68,8 @@ struct Data {
         .##...##.#
         .....#.#..
         """
+
+    static let sample4Point: Point? = nil
 
     static let sample5 = """
         .#..##.###...#######
@@ -80,6 +93,18 @@ struct Data {
         #.#.#.#####.####.###
         ###.##.####.##.#..##
         """
+
+    static let sample5Point: Point? = nil
+
+    static let sample6 = """
+        .#....#####...#..
+        ##...##.#####..##
+        ##...#...#.#####.
+        ..#.....#...###..
+        ..#.#.....#....##
+        """
+
+    static let sample6Point: Point? = Point(x: 8, y: 3)
 
     static let input = """
         .#....#.###.........#..##.###.#.....##...
@@ -124,5 +149,8 @@ struct Data {
         ..........#...#..##..#..##....#.........#
         ..#..#....###..........##..#...#...#..#..
         """
+
+    static let inputPoint: Point? = nil
+
 }
 
