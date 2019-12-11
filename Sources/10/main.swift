@@ -174,11 +174,11 @@ while remainingAsteroids.count != 1 {
         animator?.draw { (context) in
             let bounds = CGRect(x: 0, y: 0, width: context.width, height: context.height)
 
-            let backgroundColor = CGColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0)
+            let backgroundColor = CGColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)
             context.setFillColor(backgroundColor)
             context.fill(bounds)
 
-            let fillColor = CGColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0)
+            let fillColor = CGColor(red: 0.39, green: 0.82, blue: 1.0, alpha: 1.0)
 
             for current in remainingAsteroids {
                 if current.0 == resetPoint {
@@ -194,13 +194,13 @@ while remainingAsteroids.count != 1 {
                 context.fill(bounds)
             }
 
-            let targetColor = CGColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0)
+            let targetColor = CGColor(red: 1.0, green: 0.27, blue: 0.23, alpha: 1.0)
             let targetBounds = CGRect(x: CGFloat(asteroid.0.x) * 16.0, y: CGFloat(asteroid.0.y) * 16.0, width: 16.0, height: 16.0)
 
             context.setFillColor(targetColor)
             context.fill(targetBounds)
 
-            let baseColor = CGColor(red: 0.0, green: 1.0, blue: 0.5, alpha: 1.0)
+            let baseColor = CGColor(red: 0.19, green: 0.82, blue: 0.35, alpha: 1.0)
             let baseBounds = CGRect(x: CGFloat(laserPoint.x) * 16.0, y: CGFloat(laserPoint.y) * 16.0, width: 16.0, height: 16.0)
 
             context.setFillColor(baseColor)
@@ -212,9 +212,9 @@ while remainingAsteroids.count != 1 {
             context.move(to: baseCenter)
             context.addLine(to: asteroidCenter)
 
-            let lineColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
+            let lineColor = CGColor(red: 0.92, green: 0.92, blue: 0.96, alpha: 0.6)
 
-            context.setLineWidth(2.0)
+            context.setLineWidth(4.0)
             context.setStrokeColor(lineColor)
             context.strokePath()
         }
