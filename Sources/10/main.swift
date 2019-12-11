@@ -39,6 +39,7 @@ func printMap(width: Int, height: Int, points: Set<Point>) {
 
 let mapString = Data.input
 let mapPoint = Data.inputPoint
+let animate = true
 
 // Parse out the points from the map
 let rows = mapString.split(separator: "\n")
@@ -46,6 +47,15 @@ let rows = mapString.split(separator: "\n")
 var asteroids: Set<Point> = []
 let width = rows[0].count
 let height = rows.count
+
+var animator: Animator? = nil
+
+if animate {
+    let url = try! FileManager.default.url(for: .desktopDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+    let saveUrl = url.appendingPathComponent("10.mov")
+
+    animator = Animator(width: width * 16, height: height * 16, frameRate: 1.0 / 20.0, url: saveUrl)
+}
 
 for (y, row) in rows.enumerated() {
     for (x, space) in row.enumerated() {
@@ -146,7 +156,7 @@ while remainingAsteroids.count != 1 {
     if asteroid.0 == resetPoint {
         lastAngle = 655321.0
         remainingAsteroids.append(asteroid)
-    } else if asteroid.1 == lastAngle && !remainingAsteroids.isEmpty {
+    } else if asteroid.1 == lastAngle {
         remainingAsteroids.append(asteroid)
     } else {
         lastAngle = asteroid.1
@@ -160,5 +170,49 @@ while remainingAsteroids.count != 1 {
             print("200th! \(bet)")
             print()
         }
+
+        animator?.draw { (context) in
+            let bounds = CGRect(x: 0, y: 0, width: context.width, height: context.height)
+
+            let backgroundColor = CGColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0)
+            context.setFillColor(backgroundColor)
+            context.fill(bounds)
+
+            let fillColor = CGColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0)
+
+            for current in remainingAsteroids {
+                if current.0 == resetPoint {
+                    continue
+                }
+
+                let x = CGFloat(current.0.x) * 16.0
+                let y = CGFloat(current.0.y) * 16.0
+
+                let bounds = CGRect(x: x, y: y, width: 16.0, height: 16.0)
+
+                context.setFillColor(fillColor)
+                context.fill(bounds)
+            }
+
+            let baseColor = CGColor(red: 0.0, green: 1.0, blue: 0.5, alpha: 1.0)
+            let baseBounds = CGRect(x: CGFloat(laserPoint.x)  * 16.0, y: CGFloat(laserPoint.y) * 16.0, width: 16.0, height: 16.0)
+
+            context.setFillColor(baseColor)
+            context.fill(baseBounds)
+
+            let baseCenter = CGPoint(x: CGFloat(laserPoint.x) * 16.0 + 8.0, y: CGFloat(laserPoint.y) * 16.0 + 8.0)
+            let asteroidCenter = CGPoint(x: CGFloat(asteroid.0.x) * 16.0 + 8.0, y: CGFloat(asteroid.0.y) * 16.0 + 8.0)
+
+            context.move(to: baseCenter)
+            context.addLine(to: asteroidCenter)
+
+            let lineColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
+
+            context.setLineWidth(2.0)
+            context.setStrokeColor(lineColor)
+            context.strokePath()
+        }
     }
 }
+
+animator?.complete()
