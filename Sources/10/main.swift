@@ -54,7 +54,7 @@ if animate {
     let url = try! FileManager.default.url(for: .desktopDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
     let saveUrl = url.appendingPathComponent("10.mov")
 
-    animator = Animator(width: width * 16, height: height * 16, frameRate: 1.0 / 20.0, url: saveUrl)
+    animator = Animator(width: width * 16, height: height * 16, frameRate: 1.0 / 30.0, url: saveUrl)
 }
 
 for (y, row) in rows.enumerated() {
@@ -194,8 +194,14 @@ while remainingAsteroids.count != 1 {
                 context.fill(bounds)
             }
 
+            let targetColor = CGColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0)
+            let targetBounds = CGRect(x: CGFloat(asteroid.0.x) * 16.0, y: CGFloat(asteroid.0.y) * 16.0, width: 16.0, height: 16.0)
+
+            context.setFillColor(targetColor)
+            context.fill(targetBounds)
+
             let baseColor = CGColor(red: 0.0, green: 1.0, blue: 0.5, alpha: 1.0)
-            let baseBounds = CGRect(x: CGFloat(laserPoint.x)  * 16.0, y: CGFloat(laserPoint.y) * 16.0, width: 16.0, height: 16.0)
+            let baseBounds = CGRect(x: CGFloat(laserPoint.x) * 16.0, y: CGFloat(laserPoint.y) * 16.0, width: 16.0, height: 16.0)
 
             context.setFillColor(baseColor)
             context.fill(baseBounds)

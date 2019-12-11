@@ -101,7 +101,7 @@ public class Animator {
         let stride = CVPixelBufferGetBytesPerRow(pixelBuffer)
 
         let colorSpace = CGColorSpaceCreateDeviceRGB()
-        guard let context = CGContext(data: baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: stride, space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+        guard let context = CGContext(data: baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: stride, space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue + CGBitmapInfo.byteOrder32Little.rawValue) else {
             fatalError("Failed to create context")
         }
 
