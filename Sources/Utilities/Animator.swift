@@ -21,6 +21,10 @@ public class Animator {
     let writerInput: AVAssetWriterInput
     let writerAdaptor: AVAssetWriterInputPixelBufferAdaptor
 
+    let writerQueue: DispatchQueue
+    let writerCondition: NSCondition
+    var writerObservation: NSKeyValueObservation!
+
     var currentFrameTime = CMTime(seconds: 0.0, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
 
     /**
@@ -38,6 +42,9 @@ public class Animator {
         self.width = width
         self.height = height
         self.frameRate = CMTime(seconds: frameRate, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+
+        writerQueue = DispatchQueue(label: "us.gerstacker.adventofcode.animator")
+        writerCondition = NSCondition()
 
         if FileManager.default.fileExists(atPath: url.path) {
             try! FileManager.default.removeItem(at: url)
@@ -71,6 +78,18 @@ public class Animator {
         }
 
         writer.startSession(atSourceTime: currentFrameTime)
+
+        writerObservation = writerInput.observe(\.isReadyForMoreMediaData, options: .new, changeHandler: { (_, change) in
+            guard let isReady = change.newValue else {
+                return
+            }
+
+            if isReady {
+                self.writerCondition.lock()
+                self.writerCondition.signal()
+                self.writerCondition.unlock()
+            }
+        })
     }
 
     /**
@@ -83,8 +102,11 @@ public class Animator {
      This call will block until the file writing has completed.
      */
     public func complete() {
-        writerInput.markAsFinished()
+        writerQueue.sync {
+            writerInput.markAsFinished()
+        }
 
+        let condition = NSCondition()
         var complete = false
 
         writer.finishWriting {
@@ -93,12 +115,21 @@ public class Animator {
                 print("Failed to finish writing: \(message)")
             }
 
+            condition.lock()
             complete = true
+            condition.signal()
+            condition.unlock()
         }
 
+        condition.lock()
+
         while !complete {
-            sleep(1)
+            condition.wait()
         }
+
+        condition.unlock()
+
+        writerObservation.invalidate()
     }
 
     /**
@@ -138,12 +169,18 @@ public class Animator {
 
         CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
 
-        while !writerInput.isReadyForMoreMediaData {
-            Thread.sleep(forTimeInterval: 0.05)
-        }
+        writerQueue.async {
+            self.writerCondition.lock()
 
-        writerAdaptor.append(pixelBuffer, withPresentationTime: currentFrameTime)
-        currentFrameTime = CMTimeAdd(currentFrameTime, frameRate)
+            while !self.writerInput.isReadyForMoreMediaData {
+                self.writerCondition.wait()
+            }
+
+            self.writerCondition.unlock()
+
+            self.writerAdaptor.append(pixelBuffer, withPresentationTime: self.currentFrameTime)
+            self.currentFrameTime = CMTimeAdd(self.currentFrameTime, self.frameRate)
+        }
     }
 
 }
