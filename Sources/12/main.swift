@@ -16,6 +16,7 @@ import simd
 let input = Data.input
 let totalSteps = Data.inputSteps
 let printSteps = 100
+let animate = true
 
 
 // MARK: - Constants & Globals
@@ -173,8 +174,60 @@ for idx in 0 ..< input.count {
 
 print("Energy Sum: \(totalEnergy)")
 
+// MARK: - Animation
+
+if animate {
+    print()
+    print("Animating")
+
+    let url = try! FileManager.default.url(for: .desktopDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+    let saveUrl = url.appendingPathComponent("12.mov")
+
+    let animator: Animator = Animator(width: 640, height: 480, frameRate: 1.0 / 15.0, url: saveUrl)
+
+    for idx in 0 ..< xHistory.count {
+        animator.draw  { (context) in
+            let backgroundBounds = CGRect(x: 0, y: 0, width: context.width, height: context.height)
+            let backgroundColor = CGColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0)
+
+            context.setFillColor(backgroundColor)
+            context.fill(backgroundBounds)
+
+            let center = CGPoint(x: context.width / 2, y: context.height / 2)
+
+            let planetColors = [
+                CGColor(red: 0.04, green: 0.52, blue: 1.00, alpha: 1.0),
+                CGColor(red: 0.19, green: 0.82, blue: 0.35, alpha: 1.0),
+                CGColor(red: 1.00, green: 0.27, blue: 0.23, alpha: 1.0),
+                CGColor(red: 1.00, green: 0.84, blue: 0.04, alpha: 1.0)
+            ]
+
+            let multiplier: CGFloat = 5
+            let radius: CGFloat = 10
+
+            let indexes = (0 ..< input.count).sorted { zHistory[idx][$0].position < zHistory[idx][$1].position }
+
+            for planetIdx in indexes {
+                let planetRadius = radius + CGFloat(zHistory[idx][planetIdx].position) * 0.5
+
+                let planetCenter = CGPoint(x: center.x + CGFloat(xHistory[idx][planetIdx].position) * multiplier, y: center.y + CGFloat(yHistory[idx][planetIdx].position) * multiplier)
+                let planetBounds = CGRect(x: planetCenter.x - planetRadius, y: planetCenter.y - planetRadius, width: planetRadius * 2, height: planetRadius * 2)
+
+                context.setFillColor(planetColors[planetIdx])
+                context.fillEllipse(in: planetBounds)
+            }
+        }
+    }
+
+    print("Completing animation")
+    animator.complete()
+    print("Complete!")
+
+}
+
 // MARK: - Part 2
 
+print()
 print("==================")
 print("      Part 2      ")
 print("==================")
