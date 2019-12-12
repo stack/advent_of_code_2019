@@ -22,8 +22,8 @@ public class Animator {
     var currentFrameTime = CMTime(seconds: 0.0, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
 
     public init(width: Int, height: Int, frameRate: Double, url: URL) {
-        precondition(width % 16 == 0)
-        precondition(height % 16 == 0)
+        precondition(width % 2 == 0)
+        precondition(height % 2 == 0)
 
         self.width = width
         self.height = height

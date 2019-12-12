@@ -11,6 +11,8 @@ import Utilities
 
 class Robot {
 
+    static let blockSize: Int = 20
+
     var currentPoint: Point
     var currentDirection: Direction
     var area: [Point:Color]
@@ -53,7 +55,7 @@ class Robot {
             let url = try! FileManager.default.url(for: .desktopDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
             let saveUrl = url.appendingPathComponent("11.mov")
 
-            animator = Animator(width: width * 16, height: height * 16, frameRate: 1.0 / 10.0, url: saveUrl)
+            animator = Animator(width: width * Robot.blockSize, height: height * Robot.blockSize, frameRate: 1.0 / 15.0, url: saveUrl)
         } else {
             animator = nil
         }
@@ -71,7 +73,7 @@ class Robot {
             let whiteColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
 
             for (point, color) in area {
-                let pointBounds = CGRect(x: point.x * 16, y: point.y * 16, width: 16, height: 16)
+                let pointBounds = CGRect(x: point.x * Robot.blockSize, y: point.y * Robot.blockSize, width: Robot.blockSize, height: Robot.blockSize)
 
                 let pointColor: CGColor
 
@@ -86,8 +88,25 @@ class Robot {
                 context.fill(pointBounds)
             }
 
+            let robotBackgroundColor: CGColor
+
+            if let color = area[currentPoint] {
+                switch color {
+                case .black:
+                    robotBackgroundColor = blackColor
+                case .white:
+                    robotBackgroundColor = whiteColor
+                }
+            } else {
+                robotBackgroundColor = blackColor
+            }
+
+            let robotBounds = CGRect(x: currentPoint.x * Robot.blockSize, y: currentPoint.y * Robot.blockSize, width: Robot.blockSize, height: Robot.blockSize)
+
+            context.setFillColor(robotBackgroundColor)
+            context.fill(robotBounds)
+
             let robotColor = CGColor(red: 0.04, green: 0.52, blue: 1.0, alpha: 1.0)
-            let robotBounds = CGRect(x: currentPoint.x * 16, y: currentPoint.y * 16, width: 16, height: 16)
 
             let point1: CGPoint
             let point2: CGPoint
