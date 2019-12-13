@@ -155,7 +155,10 @@ public class IntcodeComputer {
     var data: [Int]
     var head: Int
     var relativeBase: Int
+
     var inputs: [Int]
+    public private(set) var needsInput: Bool
+
     public private(set) var lastOutput: Int
 
     public private(set) var isHalted = false
@@ -166,6 +169,8 @@ public class IntcodeComputer {
         self.data = data
         head = 0
         relativeBase = 0
+
+        needsInput = true
         self.inputs = inputs
 
         lastOutput = 0
@@ -234,11 +239,16 @@ public class IntcodeComputer {
     }
 
     private func input(parameters: [Parameter]) -> Int {
-        let outputIdx = getDestination(parameter: parameters[0])
+        if inputs.isEmpty {
+            needsInput = true
 
-        setValue(value: inputs.removeFirst(), at: outputIdx)
+            return head
+        } else {
+            let outputIdx = getDestination(parameter: parameters[0])
+            setValue(value: inputs.removeFirst(), at: outputIdx)
 
-        return head + 2
+            return head + 2
+        }
     }
 
     private func jumpIfFalse(parameters: [Parameter]) -> Int {
@@ -307,6 +317,7 @@ public class IntcodeComputer {
 
     public func add(input: Int) {
         inputs.append(input)
+        needsInput = false
     }
 
     public func run() {
@@ -325,6 +336,10 @@ public class IntcodeComputer {
                 nextHead = multiply(parameters: operation.parameters)
             case .input:
                 nextHead = input(parameters: operation.parameters)
+
+                if head == nextHead {
+                    keepRunning = false
+                }
             case .output:
                 nextHead = output(parameters: operation.parameters)
                 keepRunning = false
