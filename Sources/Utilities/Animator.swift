@@ -24,6 +24,7 @@ public class Animator {
     let writerQueue: DispatchQueue
     let writerCondition: NSCondition
     var writerObservation: NSKeyValueObservation!
+    let writerSemaphore: DispatchSemaphore
 
     var currentFrameTime = CMTime(seconds: 0.0, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
 
@@ -34,8 +35,9 @@ public class Animator {
      - Parameter height: The height of the canvas that is presented when drawing.
      - Parameter frameRate: Supplied as a ratio, the frame rate the video will be produced at. For example, to achieve 30 FPS, you would supply `1.0 / 30.0`.
      - Parameter url: The file URL to store the resulting video in.
+     - Parameter backPressure: The amount of draw that can be queued at one time before blocking. [Default = 16]
      */
-    public init(width: Int, height: Int, frameRate: Double, url: URL) {
+    public init(width: Int, height: Int, frameRate: Double, url: URL, backPressure: Int = 16) {
         precondition(width % 2 == 0)
         precondition(height % 2 == 0)
 
@@ -78,6 +80,8 @@ public class Animator {
         }
 
         writer.startSession(atSourceTime: currentFrameTime)
+
+        writerSemaphore = DispatchSemaphore(value: backPressure)
 
         writerObservation = writerInput.observe(\.isReadyForMoreMediaData, options: .new, changeHandler: { (_, change) in
             guard let isReady = change.newValue else {
@@ -169,6 +173,8 @@ public class Animator {
 
         CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
 
+        writerSemaphore.wait()
+
         writerQueue.async {
             self.writerCondition.lock()
 
@@ -180,6 +186,8 @@ public class Animator {
 
             self.writerAdaptor.append(pixelBuffer, withPresentationTime: self.currentFrameTime)
             self.currentFrameTime = CMTimeAdd(self.currentFrameTime, self.frameRate)
+
+            self.writerSemaphore.signal()
         }
     }
 
