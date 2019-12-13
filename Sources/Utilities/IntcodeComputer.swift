@@ -160,6 +160,7 @@ public class IntcodeComputer {
     public private(set) var needsInput: Bool
 
     public private(set) var lastOutput: Int
+    public private(set) var hasOutput: Bool
 
     public private(set) var isHalted = false
 
@@ -170,9 +171,10 @@ public class IntcodeComputer {
         head = 0
         relativeBase = 0
 
-        needsInput = true
+        needsInput = false
         self.inputs = inputs
 
+        hasOutput = false
         lastOutput = 0
     }
 
@@ -309,6 +311,7 @@ public class IntcodeComputer {
         let value = getValue(parameter: parameters[0])
 
         lastOutput = value
+        hasOutput = true
 
         return head + 2
     }
@@ -318,6 +321,11 @@ public class IntcodeComputer {
     public func add(input: Int) {
         inputs.append(input)
         needsInput = false
+    }
+
+    public func getOutput() -> Int {
+        hasOutput = false
+        return lastOutput
     }
 
     public func run() {

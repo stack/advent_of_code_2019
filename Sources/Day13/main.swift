@@ -38,6 +38,10 @@ class Game {
 
     var tiles: [Point:Tile]
 
+    var lastBallPosition: Point
+    var lastPaddlePosition: Point
+    var score: Int
+
     var minX: Int = 0
     var maxX: Int = 0
     var minY: Int = 0
@@ -48,8 +52,6 @@ class Game {
 
     let computer: IntcodeComputer
 
-    let animator: Animator?
-
     var totalBlockTiles: Int {
         return tiles.filter { $1 == .block }.count
     }
@@ -58,16 +60,13 @@ class Game {
         self.width = width
         self.height = height
 
+        lastBallPosition = Point(x: Int.min, y: Int.min)
+        lastPaddlePosition = Point(x: Int.min, y: Int.min)
+        score = 0
+
         tiles = [:]
 
         computer = IntcodeComputer(data: data, inputs: [])
-
-        animator = nil
-    }
-
-    func draw() {
-        animator?.draw { context in
-        }
     }
 
     func run() {
@@ -80,20 +79,50 @@ class Game {
                 break
             }
 
-            outputs.append(computer.lastOutput)
+            if computer.needsInput {
+                let xDelta = lastPaddlePosition.x - lastBallPosition.x
+
+                if xDelta > 0 {
+                    print("Moving paddle left")
+                    computer.add(input: -1)
+                } else if xDelta < 0 {
+                    print("Moving paddle rigt")
+                    computer.add(input: 1)
+                } else {
+                    print("Paddle stays in place")
+                    computer.add(input: 0)
+                }
+            }
+
+            if computer.hasOutput {
+                outputs.append(computer.getOutput())
+            }
 
             if outputs.count == 3 {
-                let point = Point(x: outputs[0], y: outputs[1])
-                let tile = Tile(rawValue: outputs[2])!
+                if outputs[0] == -1 && outputs[1] == 0 {
+                    score = outputs[2]
+                    print("Score: \(score)")
+                } else {
+                    let point = Point(x: outputs[0], y: outputs[1])
+                    let tile = Tile(rawValue: outputs[2])!
 
-                tiles[point] = tile
+                    tiles[point] = tile
 
-                print("Added \(tile) @ \(point)")
+                    print("Added \(tile) @ \(point)")
 
-                minX = min(minX, point.x)
-                maxX = max(maxX, point.x)
-                minY = min(minY, point.y)
-                maxY = max(maxY, point.y)
+                    if tile == .ball {
+                        lastBallPosition = point
+                    }
+
+                    if tile == .horizontalPaddle {
+                        lastPaddlePosition = point
+                    }
+
+                    minX = min(minX, point.x)
+                    maxX = max(maxX, point.x)
+                    minY = min(minY, point.y)
+                    maxY = max(maxY, point.y)
+                }
 
                 outputs.removeAll(keepingCapacity: true)
             }
@@ -111,8 +140,9 @@ print("Total block tiles: \(game1.totalBlockTiles)")
 var data2 = Data.input
 data2[0] = 2
 
-var inputSize = 1
-while true {
+let game2 = Game(data: data2)
+game2.run()
 
-}
+print("Total block tiles: \(game2.totalBlockTiles)")
+print("Final Score: \(game2.score)")
 
