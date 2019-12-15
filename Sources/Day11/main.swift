@@ -37,7 +37,7 @@ class Robot {
         if let point = startingPoint {
             currentPoint = point
         } else {
-            currentPoint = Point(x: 0, y: 0)
+            currentPoint = .zero
         }
 
         currentDirection = .up

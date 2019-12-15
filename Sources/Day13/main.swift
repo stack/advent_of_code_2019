@@ -65,8 +65,8 @@ class Game {
         self.width = width
         self.height = height
 
-        lastBallPosition = Point(x: Int.min, y: Int.min)
-        lastPaddlePosition = Point(x: Int.min, y: Int.min)
+        lastBallPosition = .min
+        lastPaddlePosition = .min
         score = 0
 
         tiles = [:]

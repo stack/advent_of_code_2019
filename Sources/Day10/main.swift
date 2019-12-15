@@ -107,7 +107,7 @@ if let point = mapPoint {
     print("Using existing point: \(point)")
     laserPoint = point
 } else {
-    var bestPoint = Point(x: Int.max, y: Int.max)
+    var bestPoint: Point = .max
     var bestCount = Int.min
 
     for (point, viewable) in viewable {
@@ -147,7 +147,7 @@ var remainingAsteroids = relativeAngles.sorted {
 var lastAngle: Float = 655321.0
 var removedCount = 0
 
-let resetPoint = Point(x: Int.max, y: Int.max)
+let resetPoint: Point = .max
 remainingAsteroids.append((resetPoint, 0.0, 0))
 
 while remainingAsteroids.count != 1 {

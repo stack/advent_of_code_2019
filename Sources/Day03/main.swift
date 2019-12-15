@@ -31,15 +31,6 @@ struct Bounds {
     }
 }
 
-struct Point: Equatable {
-    var x: Int
-    var y: Int
-
-    var distanceFromOrigin: Int {
-        return abs(x) + abs(y)
-    }
-}
-
 enum Square {
     case empty
     case origin
@@ -111,7 +102,7 @@ class Panel {
     private func determineBounds(wire: [Instruction]) -> Bounds {
         var bounds = Bounds(minX: 0, minY: 0, maxX: 0, maxY: 0)
 
-        var location = Point(x: 0, y: 0)
+        var location: Point = .zero
 
         for instruction in wire {
             switch instruction {

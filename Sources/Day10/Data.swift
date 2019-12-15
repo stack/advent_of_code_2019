@@ -9,11 +9,6 @@
 import Foundation
 import Utilities
 
-struct Point: Hashable {
-    let x: Int
-    let y: Int
-}
-
 struct Data {
 
     static let sample1 = """

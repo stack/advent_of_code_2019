@@ -9,11 +9,6 @@
 import Foundation
 import Utilities
 
-struct Point: Hashable {
-    var x: Int
-    var y: Int
-}
-
 enum Color: Int {
     case black = 0
     case white = 1
