@@ -6,6 +6,7 @@
 //  Copyright © 2019 Stephen H. Gerstacker. All rights reserved.
 //
 
+import Cocoa
 import Foundation
 import Utilities
 
@@ -35,9 +36,150 @@ enum Space {
     case oxygen
 }
 
-class Skutter {
+let backgroundColor = CGColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0)
+let emptyColor = CGColor(red: 0.92, green: 0.92, blue: 0.96, alpha: 1.0)
+let oxygenColor = CGColor(red: 0.39, green: 0.82, blue: 1.00, alpha: 1.0)
+let wallColor = CGColor(red: 0.33, green: 0.33, blue: 0.35, alpha: 1.0)
+let filledColor = CGColor(red: 0.19, green: 0.82, blue: 0.35, alpha: 1.0)
+let scoreColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
+let blockSize = 20
 
-    static let blockSize = 20
+class OxygenSimulator {
+
+    let map: [Point:Space]
+    var spread: Set<Point>
+    var minutes: Int
+
+    var minX: Int = 0
+    var minY: Int = 0
+    var maxX: Int = 0
+    var maxY: Int = 0
+
+    let animator: Animator?
+
+    init(map: [Point:Space], animator: Animator? = nil) {
+        self.map = map
+        self.animator = animator
+        minutes = 0
+
+        spread = []
+
+        for (point, _) in map {
+            minX = min(minX, point.x)
+            minY = min(minY, point.y)
+            maxX = max(maxX, point.x)
+            maxY = max(maxY, point.y)
+        }
+    }
+
+    func draw() {
+        guard let animator = animator else {
+            return
+        }
+
+        animator.draw { context in
+            let backgroundBounds = CGRect(x: 0, y: 0, width: context.width, height: context.height)
+
+            context.setFillColor(backgroundColor)
+            context.fill(backgroundBounds)
+
+            for (point, space) in map {
+                let spaceBounds = CGRect(
+                    x: (point.x - minX) * blockSize,
+                    y: (point.y - minY) * blockSize,
+                    width: blockSize,
+                    height: blockSize
+                )
+
+                let spaceColor: CGColor
+
+                if spread.contains(point) {
+                    spaceColor = filledColor
+                } else {
+                    switch space {
+                    case .empty:
+                        spaceColor = emptyColor
+                    case .oxygen:
+                        spaceColor = oxygenColor
+                    case .wall:
+                        spaceColor = wallColor
+                    }
+                }
+
+                context.setFillColor(spaceColor)
+                context.fill(spaceBounds)
+            }
+
+            context.saveGState()
+
+            context.textMatrix = CGAffineTransform.identity.translatedBy(x: 0, y: CGFloat(context.height)).scaledBy(x: 1, y: -1)
+
+            context.setFillColor(scoreColor)
+
+            let textBounds = CGRect(x: backgroundBounds.minX + 2.0, y: backgroundBounds.minY + CGFloat(blockSize) / 2.0, width: backgroundBounds.width, height: CGFloat(blockSize))
+
+            let minutesString = String(minutes)
+            let minutesAttributes = [
+                NSAttributedString.Key.font: NSFont.systemFont(ofSize: CGFloat(blockSize) * 0.8),
+                NSAttributedString.Key.foregroundColor: NSColor.white
+            ]
+
+            let minutesAttributedString = NSAttributedString(string: minutesString, attributes: minutesAttributes)
+
+            let frameSetter = CTFramesetterCreateWithAttributedString(minutesAttributedString)
+
+            let finalPath = CGMutablePath()
+            finalPath.addRect(textBounds)
+
+            let frame = CTFramesetterCreateFrame(frameSetter, CFRange(location: 0, length: 0), finalPath, nil)
+            CTFrameDraw(frame, context)
+
+            context.restoreGState()
+        }
+    }
+
+    func run() {
+        let (oxygenSystemPoint, _) = map.first { (arg0) -> Bool in
+            let (_, value) = arg0
+            return value == .oxygen
+        }!
+
+        var currentPoints = [oxygenSystemPoint]
+        spread.insert(oxygenSystemPoint)
+
+        draw()
+
+        while !currentPoints.isEmpty {
+            var nextPoints: [Point] = []
+
+            for currentPoint in currentPoints {
+                let surroundingPoints = [
+                    Point(x: currentPoint.x, y: currentPoint.y - 1),
+                    Point(x: currentPoint.x, y: currentPoint.y + 1),
+                    Point(x: currentPoint.x - 1, y: currentPoint.y),
+                    Point(x: currentPoint.x + 1, y: currentPoint.y),
+                ]
+
+                for surroundingPoint in surroundingPoints {
+                    if map[surroundingPoint] == .some(.empty) && !spread.contains(surroundingPoint) {
+                        nextPoints.append(surroundingPoint)
+                        spread.insert(surroundingPoint)
+                    }
+                }
+            }
+
+            if !nextPoints.isEmpty {
+                minutes += 1
+            }
+            
+            currentPoints = nextPoints
+
+            draw()
+        }
+    }
+}
+
+class Skutter {
 
     let computer: IntcodeComputer
 
@@ -85,28 +227,27 @@ class Skutter {
 
         animator.draw { context in
             let backgroundBounds = CGRect(x: 0, y: 0, width: context.width, height: context.height)
-            let backgroundColor = CGColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0)
 
             context.setFillColor(backgroundColor)
             context.fill(backgroundBounds)
 
             for (point, space) in map {
                 let spaceBounds = CGRect(
-                    x: (point.x - minX) * Skutter.blockSize,
-                    y: (point.y - minY) * Skutter.blockSize,
-                    width: Skutter.blockSize,
-                    height: Skutter.blockSize
+                    x: (point.x - minX) * blockSize,
+                    y: (point.y - minY) * blockSize,
+                    width: blockSize,
+                    height: blockSize
                 )
 
                 let spaceColor: CGColor
 
                 switch space {
                 case .empty:
-                    spaceColor = CGColor(red: 0.92, green: 0.92, blue: 0.96, alpha: 1.0)
+                    spaceColor = emptyColor
                 case .oxygen:
-                    spaceColor = CGColor(red: 0.39, green: 0.82, blue: 1.00, alpha: 1.0)
+                    spaceColor = oxygenColor
                 case .wall:
-                    spaceColor = CGColor(red: 0.33, green: 0.33, blue: 0.35, alpha: 1.0)
+                    spaceColor = wallColor
                 }
 
                 context.setFillColor(spaceColor)
@@ -114,11 +255,11 @@ class Skutter {
             }
 
             let skutterBounds = CGRect(
-                x: (currentPosition.x - minX) * Skutter.blockSize,
-                y: (currentPosition.y - minY) * Skutter.blockSize,
-                width: Skutter.blockSize,
-                height: Skutter.blockSize)
-                .insetBy(dx: CGFloat(Skutter.blockSize / 4), dy: CGFloat(Skutter.blockSize / 4))
+                x: (currentPosition.x - minX) * blockSize,
+                y: (currentPosition.y - minY) * blockSize,
+                width: blockSize,
+                height: blockSize)
+                .insetBy(dx: CGFloat(blockSize / 4), dy: CGFloat(blockSize / 4))
 
             let skutterColor = CGColor(red: 0.75, green: 0.35, blue: 0.95, alpha: 1.0)
 
@@ -341,8 +482,6 @@ class Skutter {
                 draw()
             }
         }
-
-        animator?.complete()
     }
 }
 
@@ -370,7 +509,7 @@ if animate {
     let url = try! FileManager.default.url(for: .desktopDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
     let saveUrl = url.appendingPathComponent("15.mov")
 
-    animator = Animator(width: width * Skutter.blockSize, height: height * Skutter.blockSize, frameRate: 1.0 / 30.0, url: saveUrl)
+    animator = Animator(width: width * blockSize, height: height * blockSize, frameRate: 1.0 / 30.0, url: saveUrl)
 
     let skutter = Skutter(program: data, animator: animator)
     skutter.debugPrint = false
@@ -378,3 +517,11 @@ if animate {
 } else {
     animator = nil
 }
+
+// MARK: - Part 2
+let simulator = OxygenSimulator(map: skutter.map, animator: animator)
+simulator.run()
+
+print("Minutes to fill: \(simulator.minutes)")
+
+animator?.complete()
