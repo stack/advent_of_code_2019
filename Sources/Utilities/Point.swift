@@ -33,3 +33,10 @@ public struct Point: Equatable, Hashable {
         return abs(x) + abs(y)
     }
 }
+
+extension Point: CustomStringConvertible {
+
+    public var description: String {
+        return "{\(x), \(y)}"
+    }
+}
