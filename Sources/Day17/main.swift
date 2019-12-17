@@ -286,7 +286,7 @@ class Map {
                 mainRoutine = ""
 
                 if aFunction.count <= 20 && bFunction.count <= 20 && cFunction.count <= 20 {
-                    while !currentMovements.isEmpty {
+                    while !currentMovements.isEmpty && mainRoutine.count <= 20 {
                         if aSlice.count <= currentMovements.count && aSlice == currentMovements[0 ..< aSlice.count] {
                             if !mainRoutine.isEmpty {
                                 mainRoutine.append(",")
@@ -429,7 +429,7 @@ func generateMap(program: [Int]) -> String {
 
 let shouldGenerateMap = true
 let shouldRunMap = true
-let continuousFeed = false
+let continuousFeed = true
 
 let mapString: String
 
@@ -482,7 +482,14 @@ if shouldRunMap {
 
         if computer.hasOutput {
             let output = computer.getOutput()
-            print("Output: \(output)")
+
+            if output > 255 {
+                print("Cleaned: \(output)")
+            } else if output == 10 {
+                print()
+            } else {
+                print(String(UnicodeScalar(UInt8(output))), terminator: "")
+            }
         }
     }
 }
