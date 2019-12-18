@@ -8,7 +8,7 @@
 
 import Foundation
 
-public struct PriorityQueue<T: Equatable> {
+public struct PriorityQueue<T> {
     public typealias Item = T
 
     var nodes: [(Item,Int)]

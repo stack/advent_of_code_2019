@@ -9,37 +9,71 @@
 import Foundation
 import Utilities
 
-enum Square: Equatable {
+enum Square: Equatable, Hashable {
     case wall
     case empty
     case key(String)
     case door(String)
 }
 
-class Maze {
+class PathCache {
 
+    var cache: [Int:[Point]]
+
+    init() {
+        cache = [:]
+    }
+
+    func get(from source: Point, to destination: Point) -> [Point]? {
+        var hasher = Hasher()
+        hasher.combine(source)
+        hasher.combine(destination)
+
+        let cacheId = hasher.finalize()
+
+        return cache[cacheId]
+    }
+
+    func set(from source: Point, to destination: Point, path: [Point]) {
+        var hasher = Hasher()
+        hasher.combine(source)
+        hasher.combine(destination)
+
+        let cacheId = hasher.finalize()
+
+        cache[cacheId] = path
+    }
+}
+
+struct Maze {
     var map: [Point:Square]
-    var doors: [String:Point]
     var keys: [String:Point]
 
-    var heldKeys: [String]
-
     var currentPosition: Point
+    var heldKeys: Set<String>
+    var openedDoors: Set<String>
+
+    var movement: [String]
 
     let width: Int
     let height: Int
 
+    var stepsTaken: Int
+
+    let pathCache: PathCache
+
     init(data: String) {
         map = [:]
-        doors = [:]
         keys = [:]
 
-        heldKeys = []
-
         currentPosition = .min
+        heldKeys = []
+        openedDoors = []
 
-        var width = 0
-        var height = 0
+        movement = []
+
+        var width = Int.min
+        var height = Int.min
 
         for (y, line) in data.split(separator: "\n").enumerated() {
             for (x, character) in line.enumerated() {
@@ -56,38 +90,53 @@ class Maze {
                 case "@":
                     map[point] = .empty
                     currentPosition = point
-                case "a" ..< "z":
-                    let value = String(character)
-                    map[point] = .key(value)
-                    keys[value] = point
-                case "A" ..< "Z":
-                    let value = String(character)
-                    map[point] = .door(value)
-                    doors[value] = point
+                case "a" ... "z":
+                    map[point] = .key(String(character))
+                    keys[String(character)] = point
+                case "A" ... "Z":
+                    map[point] = .door(character.lowercased())
                 default:
-                    fatalError("Unhandled character: \(character)")
+                    fatalError("Unsupported map character: \(character)")
                 }
             }
         }
 
         self.width = width
         self.height = height
+
+        stepsTaken = 0
+
+        pathCache = PathCache()
     }
 
-    func path(from: Point, to: Point) -> [Point]? {
+    func nextPaths() -> [[Point]] {
+        let sortedKeys = keys.keys.sorted()
+
+        return sortedKeys.compactMap {
+            if heldKeys.contains($0) {
+                return nil
+            } else {
+                return path(from: currentPosition, to: keys[$0]!)
+            }
+        }
+    }
+
+    func path(from source: Point, to destination: Point) -> [Point]? {
+        if let cachedPath = pathCache.get(from: source, to: destination) {
+            return cachedPath
+        }
+
         var frontier = PriorityQueue<Point>()
         var cameFrom: [Point:Point] = [:]
         var costSoFar: [Point:Int] = [:]
 
-        frontier.push(from, priority: 0)
-        costSoFar[from] = 0
+        frontier.push(source, priority: 0)
+        costSoFar[source] = 0
 
         while !frontier.isEmpty {
-            guard let current = frontier.pop() else {
-                fatalError("Unexpected empty frontier")
-            }
+            let current = frontier.pop()!
 
-            if current == to {
+            if current == destination {
                 break
             }
 
@@ -99,7 +148,11 @@ class Maze {
             ]
 
             for nextPoint in nextPoints {
-                guard map[nextPoint] == .empty || nextPoint == to else {
+                guard let square = map[nextPoint] else {
+                    continue
+                }
+
+                guard square != .wall else {
                     continue
                 }
 
@@ -113,10 +166,10 @@ class Maze {
             }
         }
 
-        var current = to
-        var path: [Point] = [to]
+        var current = destination
+        var path: [Point] = [current]
 
-        while current != from {
+        while current != source {
             guard let nextPoint = cameFrom[current] else {
                 return nil
             }
@@ -125,78 +178,48 @@ class Maze {
             current = nextPoint
         }
 
-        return path.reversed()
+        let finalPath = Array(path.dropLast().reversed())
+
+        pathCache.set(from: source, to: destination, path: finalPath)
+
+        return finalPath
     }
 
-    func nextTargets() -> [Point] {
-        var targets: [Point] = []
+    mutating func walk(on path: [Point]) -> Bool {
+        var remainingPath = path
 
-        // Try open doors with the keys we have first
-        for key in heldKeys {
-            if let door = doors[key.uppercased()] {
-                targets.append(door)
-            }
-        }
+        var lastKeyVisit = ""
 
-        // All remaining keys are the next target
-        targets.append(contentsOf: keys.values)
+        while !remainingPath.isEmpty {
+            let nextPoint = remainingPath.removeFirst()
 
-        return targets
-    }
-
-    func run() {
-        var steps = 0
-
-        printMap()
-        print("Steps: \(steps)")
-
-        while !doors.isEmpty || !keys.isEmpty {
-            // Find the closes target
-            let targets = nextTargets()
-            let targetPaths = targets
-                .compactMap { path(from: currentPosition, to: $0) }
-                .sorted { $0.count < $1.count }
-
-            guard let closestTarget = targetPaths.first else {
-                fatalError("Could not find a closest target from \(targets.count)")
-            }
-
-            // Go to the closest target
-            guard let nextPosition = closestTarget.last else {
-                fatalError("Closest target is an empty path")
-            }
-
-            steps += closestTarget.count
-
-            currentPosition = nextPosition
-
-            // Consume the new position
-            switch map[currentPosition]! {
+            switch map[nextPoint]! {
             case .wall:
-                fatalError("Moved to wall")
+                fatalError("Walked in to a wall")
             case .empty:
-                fatalError("Moved to an empty space")
-            case .key(let c):
-                keys.removeValue(forKey: c)
-                heldKeys.append(c)
-                map[currentPosition] = .empty
+                stepsTaken += 1
             case .door(let c):
-                doors.removeValue(forKey: c)
-                heldKeys.removeAll { $0 == c.lowercased() }
-                map[currentPosition] = .empty
+                if heldKeys.contains(c) {
+                    openedDoors.insert(c)
+                    stepsTaken += 1
+                } else {
+                    return false
+                }
+            case .key(let c):
+                heldKeys.insert(c)
+                stepsTaken += 1
+                lastKeyVisit = c
             }
 
-            printMap()
-            print("Steps: \(steps)")
+            currentPosition = nextPoint
         }
 
-        printMap()
-        print("Steps: \(steps)")
+        movement.append(lastKeyVisit)
+
+        return true
     }
 
     func printMap() {
-        print()
-
         var buffer = ""
 
         for y in 0 ..< height {
@@ -216,23 +239,121 @@ class Maze {
                     case .empty:
                         buffer += "."
                     case .key(let c):
-                        buffer += c
+                        buffer += heldKeys.contains(c) ? "." : c
                     case .door(let c):
-                        buffer += c
+                        buffer += openedDoors.contains(c) ? "." : c.uppercased()
                     }
                 }
             }
         }
 
-        buffer += "\n"
-        buffer += "Keys: "
-        buffer += heldKeys.joined(separator: ", ")
+        buffer += "\nKeys: \(Array(heldKeys))"
+        buffer += "\nSteps: \(stepsTaken)"
+        buffer += "\nMovement: \(movement)"
 
         print(buffer)
     }
 }
 
-let data = Data.sample3
+extension Maze: Equatable {
+    static func ==(lhs: Maze, rhs: Maze) -> Bool {
+        return lhs.map == rhs.map && lhs.currentPosition == rhs.currentPosition && lhs.heldKeys == rhs.heldKeys && lhs.openedDoors == rhs.openedDoors && lhs.stepsTaken == rhs.stepsTaken
+    }
+}
 
-let maze = Maze(data: data)
-maze.run()
+extension Maze: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(map)
+        hasher.combine(currentPosition)
+        hasher.combine(heldKeys)
+        hasher.combine(openedDoors)
+        hasher.combine(stepsTaken)
+    }
+}
+
+let input = Data.sample4
+let maze = Maze(data: input)
+
+/*
+var frontier = [maze]
+var solvedMaze: Maze? = nil
+
+while !frontier.isEmpty {
+    var nextFrontier: [Maze] = []
+
+    for current in frontier {
+        print()
+        current.printMap()
+
+        if current.heldKeys.count == current.keys.count {
+            solvedMaze = current
+            break
+        }
+
+        for path in current.nextPaths() {
+            var nextMaze = current
+
+            guard nextMaze.walk(on: path) else {
+                continue
+            }
+
+            nextFrontier.append(nextMaze)
+        }
+    }
+
+    frontier = nextFrontier.sorted { $0.stepsTaken < $1.stepsTaken }
+}
+
+guard let finalMaze = solvedMaze else {
+    fatalError("Failed to find a solved maze")
+}
+
+print()
+print("Final map")
+finalMaze.printMap()
+
+print("Steps taken: \(finalMaze.stepsTaken)")
+ */
+
+var frontier = PriorityQueue<Maze>()
+var cameFrom: [Maze:Maze] = [:]
+var costSoFar: [Maze:Int] = [:]
+
+frontier.push(maze, priority: 0)
+costSoFar[maze] = 0
+
+var solvedMaze: Maze? = nil
+
+while !frontier.isEmpty {
+    let current = frontier.pop()!
+
+    print()
+    current.printMap()
+
+    if current.heldKeys.count == current.keys.count {
+        solvedMaze = current
+        break
+    }
+
+    for path in current.nextPaths() {
+        var nextMaze = current
+
+        guard nextMaze.walk(on: path) else {
+            continue
+        }
+
+        let newCost = nextMaze.stepsTaken
+
+        if costSoFar[nextMaze] == nil || newCost < costSoFar[nextMaze]! {
+            costSoFar[nextMaze] = newCost
+            frontier.push(nextMaze, priority: newCost)
+            cameFrom[nextMaze] = current
+        }
+    }
+}
+
+guard let finalMaze = solvedMaze else {
+    fatalError("Failed to find a solved maze")
+}
+
+print("Steps taken: \(finalMaze.stepsTaken)")
