@@ -93,9 +93,9 @@ while true {
 
     if !hasRowOutput {
         if output == 0 {
-            minX += 1
             currentX += 1
         } else {
+            minX = currentX
             rowStartedX = currentX
             hasRowOutput = true
             affectedPoints.insert(Point(x: currentX, y: currentY))
@@ -133,8 +133,11 @@ while true {
                 }
 
                 if found {
-                    print("Found space at \(currentX), \(currentY)")
-                    print("Answer: \(currentX * 10000 + currentY)")
+                    let originX = currentX - 99
+                    let originY = currentY - 99
+
+                    print("Found space at \(originX), \(originY)")
+                    print("Answer: \(originX * 10000 + originY)")
                     break
                 }
             }
