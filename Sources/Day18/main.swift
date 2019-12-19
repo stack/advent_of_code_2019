@@ -9,321 +9,163 @@
 import Foundation
 import Utilities
 
-enum Tile {
-    case wall
-    case empty
-}
+// MARK: - Set up
 
-struct Route {
-    let source: Int
-    let sourcePoint: Point
-    let destination: Int
-    let destinationPoint: Point
-    let path: [Point]
-    let doorsCrossed: UInt32
-}
+let data = Data.input2
 
-func path(from source: Point, to destination: Point, in map: [[Tile]]) -> [Point]? {
-    let width = map[0].count
-    let height = map.count
+let timestamp1 = DispatchTime.now()
 
-    var frontier = PriorityQueue<Point>()
-    var cameFrom: [Point:Point] = [:]
-    var costSoFar: [Point:Int] = [:]
+var maze: [[String]] = []
 
-    frontier.push(source, priority: 0)
-    costSoFar[source] = 0
+var starts: [String:Point] = [:]
+var keys: [String:Point] = [:]
 
-    while !frontier.isEmpty {
-        let current = frontier.pop()!
+for (y, line) in data.split(separator: "\n").enumerated() {
+    var currentLine: [String] = []
 
-        if current == destination {
+    for (x, tile) in line.enumerated() {
+        currentLine.append(String(tile))
+
+        switch tile {
+        case "@":
+            starts["@\(starts.count)"] = Point(x: x, y: y)
+        case "a" ... "z":
+            keys[String(tile)] = Point(x: x, y: y)
+        default:
             break
         }
+    }
 
-        let nextPoints = [
-            Point(x: current.x, y: current.y - 1),
-            Point(x: current.x, y: current.y + 1),
-            Point(x: current.x - 1, y: current.y),
-            Point(x: current.x + 1, y: current.y),
+    maze.append(currentLine)
+}
+
+print(maze)
+
+print("Starts: \(starts)")
+print("Keys: \(keys)")
+
+var keyToKey: [String:[(String,[String],Int)]] = [:]
+
+let merged = keys.merging(starts) { (lhs,_) in lhs }
+
+for (key, keyPosition) in merged {
+    print("Inspecting \(key), \(keyPosition)")
+
+    var queue: [(Point, [String])] = [ (keyPosition, [])]
+    var distance: [Point:Int] = [keyPosition:0]
+    var heldKeys: [(String, [String], Int)] = []
+
+    while !queue.isEmpty {
+        print("-   Queue: \(queue)")
+
+        let (currentPosition, neededKeys) = queue.removeFirst()
+
+        print("-   From \(currentPosition): \(neededKeys)")
+
+        let deltas = [
+            Point(x: 0, y: -1),
+            Point(x: 0, y: 1),
+            Point(x: -1, y: 0),
+            Point(x: 1, y: 0)
         ]
 
-        for nextPoint in nextPoints {
-            guard nextPoint.x >= 0 && nextPoint.y >= 0 else {
+        for delta in deltas {
+            let x = currentPosition.x + delta.x
+            let y = currentPosition.y + delta.y
+
+            let position = Point(x: x, y: y)
+            let tile = maze[y][x]
+
+            guard tile != "#" else {
                 continue
             }
 
-            guard nextPoint.x < width && nextPoint.y < height else {
+            guard distance[position] == nil else {
                 continue
             }
 
-            guard map[nextPoint.y][nextPoint.x] == .empty else {
-                continue
+            distance[position] = distance[currentPosition]! + 1
+
+            if ("a" ... "z").contains(tile) {
+                heldKeys.append((tile, neededKeys, distance[position]!))
             }
 
-            let newCost = costSoFar[current]! + 1
-
-            if costSoFar[nextPoint] == nil || newCost < costSoFar[nextPoint]! {
-                costSoFar[nextPoint] = newCost
-                frontier.push(nextPoint, priority: newCost)
-                cameFrom[nextPoint] = current
-            }
-        }
-    }
-
-    var current = destination
-    var path = [destination]
-
-    while current != source {
-        guard let previous = cameFrom[current] else {
-            return nil
-        }
-
-        path.insert(previous, at: 0)
-        current = previous
-    }
-
-    return Array(path.dropFirst())
-}
-
-let data = Data.sample4
-
-let lines = data.split(separator: "\n")
-let width = lines[0].count
-let height = lines.count
-
-var map: [[Tile]] = [[Tile]](repeating: [Tile](repeating: .empty, count: width), count: height)
-var keys: [Int:Point] = [:]
-var doors: [Point:Int] = [:]
-var startPosition: Point = .min
-
-for (y, line) in lines.enumerated() {
-    for (x, character) in line.enumerated() {
-        switch character {
-        case "#":
-            map[y][x] = .wall
-        case ".":
-            map[y][x] = .empty
-        case "@":
-            map[y][x] = .empty
-            startPosition = Point(x: x, y: y)
-        case "a" ... "z":
-            map[y][x] = .empty
-            let value = Int(String(character).utf8.first! - "a".utf8.first!)
-            keys[value] = Point(x: x, y: y)
-        case "A" ... "Z":
-            map[y][x] = .empty
-            let value = Int(character.lowercased().utf8.first! - "a".utf8.first!)
-            doors[Point(x: x, y: y)] = value
-        default:
-            fatalError("Unhandled character: \(character)")
-        }
-    }
-}
-
-print("Map:")
-print(data)
-
-print()
-print("Keys: \(keys)")
-print("Doors: \(doors)")
-
-var routes: [Route] = []
-
-for (key, point) in keys {
-    guard let routePath = path(from: startPosition, to: point, in: map) else {
-        fatalError("Failed to find a path from @:\(startPosition) to \(key):\(point)")
-    }
-
-    let doorsCrossed: [UInt32] = routePath.compactMap {
-        if let door = doors[$0] {
-            return UInt32(door)
-        } else {
-            return nil
-        }
-    }
-
-    let initial: UInt32 = 0
-    let doorsCrossedMask = doorsCrossed.reduce(initial) { (sum: UInt32, value: UInt32) -> UInt32 in
-        return sum | (1 << value)
-    }
-
-    let route = Route(
-        source: -1,
-        sourcePoint: startPosition,
-        destination: key,
-        destinationPoint: point,
-        path: routePath,
-        doorsCrossed: doorsCrossedMask
-    )
-
-    routes.append(route)
-}
-
-for (sourceKey, sourcePoint) in keys {
-    for (destinationKey, destinationPoint) in keys {
-        guard sourceKey != destinationKey else {
-            continue
-        }
-
-        guard let routePath = path(from: sourcePoint, to: destinationPoint, in: map) else {
-            fatalError("Failed to find a path from \(sourceKey):\(sourcePoint) to \(destinationKey):\(destinationPoint)")
-        }
-
-        let doorsCrossed: [UInt32] = routePath.compactMap {
-            if let door = doors[$0] {
-                return UInt32(door)
+            if ("A" ... "Z").contains(tile) {
+                queue.append((position, neededKeys + [tile.lowercased()]))
             } else {
-                return nil
+                queue.append((position, neededKeys))
             }
         }
-
-        let initial: UInt32 = 0
-        let doorsCrossedMask = doorsCrossed.reduce(initial) { (sum: UInt32, value: UInt32) -> UInt32 in
-            return sum | (1 << value)
-        }
-
-        let route = Route(
-            source: sourceKey,
-            sourcePoint: sourcePoint,
-            destination: destinationKey,
-            destinationPoint: destinationPoint,
-            path: routePath,
-            doorsCrossed: doorsCrossedMask
-        )
-
-        routes.append(route)
-    }
-}
-
-routes.sort {
-    if $0.source == $1.source {
-        return $0.destination < $1.destination
-    } else {
-        return $0.source < $1.source
-    }
-}
-
-print()
-print("Key Mapping:")
-
-for route in routes {
-    print("\(route.source) -> \(route.destination) : \(route.doorsCrossed)")
-}
-
-var routeTable: [Int:[Route]] = [:]
-
-for route in routes {
-    var existing = routeTable[route.source] ?? []
-    existing.append(route)
-
-    existing.sort { $0.path.count < $1.path.count }
-
-    routeTable[route.source] = existing
-}
-
-struct State {
-    let current: Int
-    let visited: UInt32
-    let stepsTaken: Int
-}
-
-let startingState = State(current: -1, visited: 0, stepsTaken: 0)
-var states = [startingState]
-
-func visit(states: [State]) -> [State] {
-    if states.count == keys.count + 1 {
-        return states
     }
 
-    let currentState = states.last!
-
-    for route in routeTable[currentState.current]! {
-        guard (currentState.visited & (1 << route.destination)) == 0 else {
-            continue
-        }
-
-        guard route.doorsCrossed & currentState.visited == route.doorsCrossed else {
-            continue
-        }
-
-        var visited = currentState.visited
-        visited = visited | (1 << route.destination)
-
-        let stepsTaken = currentState.stepsTaken + route.path.count
-
-        let nextState = State(current: route.destination, visited: visited, stepsTaken: stepsTaken)
-
-        var nextStates = states
-        nextStates.append(nextState)
-
-        let result = visit(states: nextStates)
-
-        if result.count == keys.count + 1 {
-            return result
-        }
-    }
-
-    return states
+    keyToKey[key] = heldKeys
 }
 
-let result = visit(states: states)
-print(result)
+print("-   Key 2 Key: \(keyToKey)")
 
-/*
-let startingState = State(current: -1, visited: 0, stepsTaken: 0)
-var frontier = [startingState]
+let timestamp2 = DispatchTime.now()
 
-var foundState: State? = nil
-let target = Int(pow(2, Double(keys.count))) - 1
+var cache: [Int:Int] = [:]
 
-while !frontier.isEmpty {
-    var nextFrontier: [State] = []
+func reachableKeys(positions: [String], unlocked: [String] = []) -> [(Int, String, Int)] {
+    var keys: [(Int, String, Int)] = []
 
-    while !frontier.isEmpty {
-        let currentState = frontier.removeFirst()
-
-        if currentState.visited == target {
-            foundState = currentState
-            break
-        }
-
-        for route in routeTable[currentState.current]! {
-            guard (currentState.visited & (1 << route.destination)) == 0 else {
+    for (runner, fromKey) in positions.enumerated() {
+        for (key, neededKeys, distance) in keyToKey[fromKey]! {
+            guard !unlocked.contains(key) else {
                 continue
             }
 
-            guard route.doorsCrossed & currentState.visited == route.doorsCrossed else {
-                continue
+            let neededKeysSet = Set(neededKeys)
+            let unlockedSet = Set(unlocked)
+
+            if neededKeysSet.isSubset(of: unlockedSet) {
+                keys.append((runner, key, distance))
             }
-
-            var visited = currentState.visited
-            visited = visited | (1 << route.destination)
-
-            let stepsTaken = currentState.stepsTaken + route.path.count
-
-            let nextState = State(current: route.destination, visited: visited, stepsTaken: stepsTaken)
-            nextFrontier.append(nextState)
         }
     }
 
-    if foundState != nil {
-        break
+    return keys
+}
+
+func minimumSteps(positions: [String], unlocked: [String] = []) -> Int {
+    var hasher = Hasher()
+    hasher.combine(positions.sorted())
+    hasher.combine(unlocked.sorted())
+
+    let cacheKey = hasher.finalize()
+
+    if let cachedSteps = cache[cacheKey] {
+        return cachedSteps
     }
 
-    frontier = nextFrontier.sorted { $0.stepsTaken < $1.stepsTaken }
+    let keys = reachableKeys(positions: positions, unlocked: unlocked)
 
-    print("Frontier size: \(frontier.count)")
+    if keys.isEmpty {
+        cache[cacheKey] = 0
+        return 0
+    }
+
+    var steps: [Int] = []
+
+    for (runner, key, distance) in keys {
+        var newPositions = positions
+        newPositions[runner] = key
+
+        steps.append(distance + minimumSteps(positions: newPositions, unlocked: unlocked + [key]))
+    }
+
+    let value = steps.min() ?? 0
+    cache[cacheKey] = value
+
+    return value
 }
 
-guard let state = foundState else {
-    fatalError("Failed to find a solution")
-}
+// MARK: - Part 1
 
-var current: State? = state
+cache = [:]
+let steps = minimumSteps(positions: Array(starts.keys))
 
-print()
-print("Found Solution:")
+let timestamp3 = DispatchTime.now()
 
-print("Total Steps: \(state.stepsTaken)")
-*/
+print("Steps: \(steps)")
