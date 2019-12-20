@@ -42,7 +42,7 @@ func draw(animator: Animator?, position: Point, level: Int) {
         let backgroundColor = CGColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)
         let wallColor = CGColor(red: 0.33, green: 0.33, blue: 0.35, alpha: 0.6)
         let emptyColor = CGColor(red: 0.92, green: 0.92, blue: 0.96, alpha: 0.6)
-        let positionColor = CGColor(red: 0.19, green: 0.82, blue: 0.35, alpha: 1.0)
+        let positionColor = CGColor(red: 1.0, green: 0.84, blue: 0.04, alpha: 1.0)
         let levelColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
 
         let teleporterFont = CTFontCreateWithName("Menlo" as CFString, CGFloat(blockSize) * 0.6, nil)
@@ -211,7 +211,7 @@ if animate {
     let url = try! FileManager.default.url(for: .desktopDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
     let saveUrl = url.appendingPathComponent("20.mov")
 
-    animator = Animator(width: width * blockSize, height: height * blockSize,  frameRate: 1.0 / 10.0, url: saveUrl)
+    animator = Animator(width: width * blockSize, height: height * blockSize,  frameRate: 1.0 / 30.0, url: saveUrl)
 } else {
     animator = nil
 }
