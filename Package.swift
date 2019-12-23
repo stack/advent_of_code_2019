@@ -9,8 +9,7 @@ let package = Package(
         .macOS(.v10_15),
     ],
     dependencies: [
-        // Dependencies declare other packages that this package depends on.
-        // .package(url: /* package url */, from: "1.0.0"),
+        .package(url: "https://github.com/attaswift/BigInt.git", from: "5.0.0")
     ],
     targets: [
         .target(
@@ -76,6 +75,9 @@ let package = Package(
         .target(
             name: "Day21",
             dependencies: ["Utilities"]),
+        .target(
+            name: "Day22",
+            dependencies: ["BigInt", "Utilities"]),
         .target(
             name: "Utilities",
             dependencies: []),
