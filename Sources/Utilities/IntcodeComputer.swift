@@ -323,6 +323,11 @@ public class IntcodeComputer {
         needsInput = false
     }
 
+    public func add(inputs: [Int]) {
+        self.inputs.append(contentsOf: inputs)
+        needsInput = false
+    }
+
     public func getOutput() -> Int {
         hasOutput = false
         return lastOutput
